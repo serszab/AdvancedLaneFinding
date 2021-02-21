@@ -111,6 +111,16 @@ The position of the vehicle with respect to center is calculated in `getXOffset`
 
 ![Histogram](./output_images/stripe.jpg)
 
+## 7. Sanity check
+
+The lane finding algorithm contains a sanity check.
+If the distance of the left and right lane is too close or too far the check fails.
+If both curvature radian is less than 1000 meters and their ratio is more than 2 the check fails.
+If the sanity check failed the data of last successful lane detection will be used.
+In the result video the lane is represented with a red color when the sanity check failed.
+
+In order to implement the sanity check I introduced the `FormerLanes` class to store the result of previous detections (see code cell 22 in my Jupyter notebook).
+
 ## Pipeline
 
 The pipeline based on the above mentioned steps is implemented in function `processImage` (see code cell 22 in my Jupyter notebook).

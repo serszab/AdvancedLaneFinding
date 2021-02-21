@@ -8,10 +8,12 @@ from moviepy.editor import VideoFileClip
 from camera_calibration import CameraCalibration
 from perspective_transform import PerspectiveTransform
 from lane_processor import LaneProcessor
+from lane_processor import FormerLanes
 from gradients_and_color import GradientsAndColor
 
 camera = CameraCalibration(9, 6)
 perspectiveTransform = PerspectiveTransform((1280, 720))
+formerLanes = FormerLanes()
 def processImage(image):
     undistortedImage = camera.undistort(image)
     gradientsAndColor = GradientsAndColor(undistortedImage)
@@ -19,7 +21,21 @@ def processImage(image):
     warpLanes = perspectiveTransform.warp(lanePixelCandidates)
     laneProcessor = LaneProcessor(warpLanes)
     laneProcessor.generateLanePixels()
-    drawnLanes = laneProcessor.drawLanes()
+    if laneProcessor.sanityCheck():
+        drawnLanes = laneProcessor.drawLanes()
+        formerLanes.newLeft(laneProcessor.getLeftPlotX())
+        formerLanes.newRight(laneProcessor.getRightPlotX())
+        leftCurvatureRadian = laneProcessor.getLeftCurvatureRadian()
+        formerLanes.newLeftCurvature(leftCurvatureRadian)
+        rightCurvatureRadian = laneProcessor.getRightCurvatureRadian()
+        formerLanes.newRightCurvature(rightCurvatureRadian)
+        xOffset = laneProcessor.getXOffset()
+        formerLanes.newOffset(xOffset)
+    else:
+        drawnLanes = laneProcessor.drawLanesWith(formerLanes.getLeft(), formerLanes.getRight())
+        leftCurvatureRadian = formerLanes.getLeftCurvature()
+        rightCurvatureRadian = formerLanes.getRightCurvature()
+        prevXOffset = formerLanes.getOffset()
     unWarpedLanes = perspectiveTransform.unWarp(drawnLanes)
     newImage = cv2.addWeighted(undistortedImage, 1, unWarpedLanes, 0.3, 0)
     leftCurvatureRadian = laneProcessor.getLeftCurvatureRadian()
@@ -30,8 +46,8 @@ def processImage(image):
     newImage = cv2.putText(newImage, text1, (50, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
     return cv2.putText(newImage, text2, (50, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
-inputVideo = VideoFileClip(filename = './project_video.mp4')
-outputVideoFile = './result_project_video.mp4'
+inputVideo = VideoFileClip(filename = 'project_video.mp4')
+outputVideoFile = 'result_project_video.mp4'
 outputVideo = inputVideo.fl_image(image_func = processImage)
 outputVideo.write_videofile(outputVideoFile, audio = False)
 
